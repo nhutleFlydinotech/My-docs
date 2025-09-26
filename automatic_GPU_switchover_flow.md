@@ -1,25 +1,25 @@
 ```mermaid
 graph TD
     subgraph "START: Monitoring SQS Queue"
-        A(Start Monitoring) --> B{Is Age of Oldest Message > 5 mins?};
+        A(Start Monitoring) --> B{Is Age of Oldest Message > 10 mins?};
     end
 
-    subgraph "SCALE-UP LOGIC (Failover)"
-        B -- "Yes (Primary Worker is down)" --> C[TRIGGER ALARM: 'Primary_Worker_Failure'];
+    subgraph "SCALE-UP LOGIC"
+        B -- "Yes" --> C[TRIGGER ALARM];
         C --> D{Is ASG Desired Capacity = 0?};
-        D -- "Yes" --> E[ACTION: Set Desired Capacity = 2];
+        D -- "Yes" --> E[ACTION: Update Desired Capacity];
         E --> F[RESULT: AWS GPU Workers are now active];
         D -- "No (Already scaled up)" --> G[RESULT: No action needed];
     end
 
-    subgraph "SCALE-DOWN LOGIC (Failback)"
-        B -- "No (Primary Worker is OK)" --> H{Is Number of Visible Messages <= 10 for 15 mins?};
-        H -- "Yes (Queue is clear)" --> I[TRIGGER ALARM: 'Queue_Is_Clear'];
+    subgraph "SCALE-DOWN LOGIC"
+        B -- "No" --> H{Are All Messages Visible + In-Flight + Delayed = 0 for 15 mins?};
+        H -- "Yes (Queue is clear)" --> I[TRIGGER ALARM];
         I --> J{Is ASG Desired Capacity > 0?};
         J -- "Yes" --> K[ACTION: Set Desired Capacity = 0];
-        K --> L[RESULT: AWS GPU Workers are now terminated];
+        K --> L[RESULT: AWS GPU Workers are now stopped];
         J -- "No (Already scaled down)" --> M[RESULT: No action needed];
-        H -- "No (Still processing)" --> N[RESULT: Continue monitoring];
+        H -- "No" --> N[RESULT: Continue monitoring];
     end
 
     %% Styling
